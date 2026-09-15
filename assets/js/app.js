@@ -258,6 +258,34 @@
     highlightTrack();
   }
 
+  /* Keeping the music going on a phone.
+
+     True screen-off playback is not available to us: mobile browsers suspend a
+     cross-origin YouTube embed when the tab is backgrounded or the screen
+     locks, and YouTube itself treats background play as a Premium feature. So
+     the achievable goal is to stop the phone from sleeping on its own while
+     Shaurya is open and playing, which is what kills playback in practice.
+
+     The lock is released on pause, and the browser drops it whenever the page
+     is hidden, so it is re-requested when the page comes back. */
+  var wakeLock = null;
+
+  function releaseWakeLock() {
+    var held = wakeLock;
+    wakeLock = null;
+    if (held) { try { held.release(); } catch (e) {} }
+  }
+
+  function requestWakeLock() {
+    if (!("wakeLock" in navigator) || wakeLock || document.hidden) return;
+    navigator.wakeLock.request("screen").then(function (lock) {
+      wakeLock = lock;
+      lock.addEventListener("release", function () { wakeLock = null; });
+    }).catch(function () {
+      // Denied, unsupported, or not over HTTPS — playback still works.
+    });
+  }
+
   function setPlayingUI(on) {
     playing = on;
     playBtn.classList.toggle("is-playing", on);
@@ -265,6 +293,7 @@
     plEq.classList.toggle("is-on", on);
     plDisc.classList.toggle("is-spinning", on);
     plState.textContent = on ? "ON AIR" : "PAUSED";
+    if (on) requestWakeLock(); else releaseWakeLock();
   }
 
   function load(index, autoplay) {
@@ -665,6 +694,16 @@
     } else if ($("gate").classList.contains("is-gone")) {
       restartBgTimer();
       restartQuoteTimer();
+      if (playing) {
+        requestWakeLock();
+        // A phone browser suspends the embed while hidden. If the player was
+        // left playing, pick the song back up instead of stranding it paused.
+        try {
+          if (ready && yt.getPlayerState && yt.getPlayerState() === YT.PlayerState.PAUSED) {
+            yt.playVideo();
+          }
+        } catch (e) {}
+      }
     }
   });
 
