@@ -10,6 +10,41 @@ window.SHAURYA_QUOTES = [
     author: "Siachen Base Camp memorial",
     kind: "forces",
   },
+
+  /* ---------- Women in uniform ----------
+     Written as recorded milestones rather than invented quotations: these are
+     verifiable firsts, so nothing is put in anyone's mouth. Swap in sourced
+     verbatim lines if you have them. */
+  {
+    text: "Punita Arora rose to Lieutenant General — the first woman in India to wear three stars.",
+    author: "Lt Gen Punita Arora, VSM, SM",
+    kind: "forces",
+  },
+  {
+    text: "Gunjan Saxena flew casualty evacuation into the Kargil heights under fire, in 1999.",
+    author: "Flt Lt Gunjan Saxena — the Kargil Girl",
+    kind: "forces",
+  },
+  {
+    text: "In 2018 Avani Chaturvedi took a MiG-21 up alone — India's first woman to fly a fighter solo.",
+    author: "Flt Lt Avani Chaturvedi, Indian Air Force",
+    kind: "forces",
+  },
+  {
+    text: "Shivangi Singh flies the Rafale — the first Indian woman on the type.",
+    author: "Sqn Ldr Shivangi Singh, Indian Air Force",
+    kind: "forces",
+  },
+  {
+    text: "Tania Shergill marched at the head of the Republic Day parade — its first woman adjutant.",
+    author: "Capt Tania Shergill, Corps of Signals, 2020",
+    kind: "forces",
+  },
+  {
+    text: "Bharat ki betiyan — the daughters of India fly her fighters, sail her warships and command her men.",
+    author: "Women of the Indian Armed Forces",
+    kind: "forces",
+  },
   {
     text: "If a man says he is not afraid of dying, he is either lying or is a Gorkha.",
     author: "Field Marshal Sam Manekshaw",

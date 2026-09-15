@@ -443,6 +443,13 @@ details code {
 }
 .jh { color: var(--saffron); letter-spacing: 0.1em; }
 
+.dedication {
+  width: min(1080px, 100%); margin: 14px auto 0;
+  text-align: center; font-family: var(--font-disp);
+  font-size: 15px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--saffron);
+}
+
 /* ============ Photo credit ============ */
 /* Bottom-right so it never collides with the quote and its buttons */
 .photo-credit {

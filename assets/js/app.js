@@ -211,6 +211,16 @@
   var playlistId = params.get("list") || CONFIG.playlistId || "";
   var usePlaylist = !!playlistId;
 
+  /* A private link — index.html?for=mj — greets the person this was built for.
+     Anyone arriving without the parameter sees the ordinary start screen. */
+  var DEDICATIONS = {
+    mj: {
+      name: "MJ",
+      salute: "MJ — this one's for you 🇮🇳",
+    },
+  };
+  var dedication = DEDICATIONS[(params.get("for") || "").trim().toLowerCase()] || null;
+
   var yt = null, ready = false, order = [], cur = 0, playing = false;
   var pollTimer = null, seeking = false, deadIds = {};
   var wantPlay = false;
@@ -640,6 +650,7 @@
       case "r": reshuffle(); break;
       case "l": toggleDrawer(); break;
       case "s": salute(); break;
+      case "m": salute(); toast(dedication ? dedication.salute : "For MJ 🇮🇳"); break;
       case "escape": closeDrawer(); break;
     }
     if (e.code === "Space") { e.preventDefault(); togglePlay(); }
@@ -705,6 +716,14 @@
     $("gateCount").textContent = usePlaylist ? "Your" : TRACKS.length;
     if (usePlaylist) {
       $("gateCount").parentNode.insertAdjacentHTML("afterbegin", "");
+    }
+
+    if (dedication) {
+      var sub = document.querySelector(".gate-sub");
+      if (sub) {
+        sub.textContent = dedication.name + " — " + TRACKS.length + " songs, " +
+          BGS.length + " photographs, and one very loud tribute. Press play.";
+      }
     }
 
     buildOrder();
