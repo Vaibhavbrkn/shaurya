@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>शौर्य Shaurya — Indian Armed Forces Radio | Patriotic Bangers</title>
+<meta name="description" content="Shaurya is a non-stop shuffle of Indian patriotic and armed forces anthems, with rotating quotes from our war heroes and a changing wall of Indian Army, Navy and Air Force photographs." />
+<meta name="theme-color" content="#07090d" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2307090d'/%3E%3Crect x='10' y='14' width='44' height='10' fill='%23FF9933'/%3E%3Crect x='10' y='24' width='44' height='10' fill='%23f4f4f4'/%3E%3Crect x='10' y='34' width='44' height='10' fill='%23138808'/%3E%3Ccircle cx='32' cy='29' r='5.5' fill='none' stroke='%23000080' stroke-width='2'/%3E%3C/svg%3E" />
+
+<!-- Social preview -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="शौर्य Shaurya — Indian Armed Forces Radio" />
+<meta property="og:description" content="Non-stop patriotic bangers, quotes from our war heroes, and a changing wall of Indian Armed Forces photographs." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&family=Tiro+Devanagari+Hindi:ital@0;1&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://upload.wikimedia.org" crossorigin />
+
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<!-- ============ Background slideshow ============ -->
+<div class="bg-stage" id="bgStage" aria-hidden="true">
+  <div class="bg-layer is-active" data-layer="a"></div>
+  <div class="bg-layer" data-layer="b"></div>
+</div>
+<div class="bg-wash" aria-hidden="true"></div>
+
+<!-- ============ Start gate (browsers block autoplay with sound) ============ -->
+<div class="gate" id="gate">
+  <div class="gate-inner">
+    <div class="gate-chakra" aria-hidden="true">
+      <svg viewBox="0 0 100 100" class="chakra-svg"><g id="chakraG"></g></svg>
+    </div>
+    <p class="gate-kicker"><span class="hi">शौर्य</span><span class="dot">·</span><span class="en">Shaurya</span></p>
+    <h1 class="gate-title">Indian Armed Forces Radio</h1>
+    <p class="gate-sub">
+      <span id="gateCount">50</span> patriotic bangers on shuffle · quotes from our war heroes ·
+      a changing wall of Army, Navy &amp; Air Force photographs
+    </p>
+    <button class="gate-btn" id="gateBtn" type="button">
+      <span class="gate-btn-glow" aria-hidden="true"></span>
+      <span class="gate-btn-text">Jai Hind — Start the Anthem</span>
+    </button>
+    <p class="gate-note">Audio only · streamed from YouTube · no login, no ads</p>
+  </div>
+</div>
+
+<!-- ============ Top bar ============ -->
+<header class="topbar" id="topbar">
+  <a class="brand" href="#top">
+    <span class="brand-chakra" aria-hidden="true">
+      <svg viewBox="0 0 100 100" class="chakra-svg"><g id="chakraG2"></g></svg>
+    </span>
+    <span class="brand-text">
+      <strong>शौर्य</strong><em>SHAURYA</em>
+    </span>
+  </a>
+
+  <div class="ticker" role="status" aria-live="off">
+    <span class="ticker-dot" aria-hidden="true"></span>
+    <span class="ticker-val" id="sessionTime">00:00</span>
+    <span class="ticker-sep" aria-hidden="true">/</span>
+    <span class="ticker-label">IST</span>
+    <span class="ticker-val" id="istClock">--:--</span>
+  </div>
+
+  <nav class="topnav">
+    <button class="nav-btn nav-icon" id="salutBtn" type="button" title="Salute (S)" aria-label="Salute">
+      <span class="nav-ico" aria-hidden="true">🇮🇳</span>
+      <span class="nav-count" id="salutCount">0</span>
+    </button>
+    <button class="nav-btn" id="listBtn" type="button" title="Playlist (L)" aria-expanded="false" aria-controls="drawer">
+      <span class="nav-ico" aria-hidden="true">☰</span>
+      <span class="nav-txt">Playlist</span>
+    </button>
+    <a class="nav-btn nav-quiet" href="#about"><span class="nav-txt">About</span></a>
+  </nav>
+</header>
+
+<!-- ============ Hero ============ -->
+<main id="top">
+  <section class="hero">
+    <div class="hero-inner">
+      <p class="hero-kicker">
+        <span class="hk-rule" aria-hidden="true"></span>
+        Indian Armed Forces Radio
+      </p>
+
+      <!-- Rotating quote: the one focal element over the photograph -->
+      <figure class="quote" id="quoteBox">
+        <blockquote class="quote-text" id="quoteText"></blockquote>
+        <figcaption class="quote-author" id="quoteAuthor"></figcaption>
+        <div class="quote-bar" id="quoteBar"><span></span></div>
+      </figure>
+
+      <div class="hero-actions">
+        <button class="ghost-btn" id="newQuoteBtn" type="button" title="New quote (Q)">
+          <span aria-hidden="true">⟳</span> Quote
+        </button>
+        <button class="ghost-btn" id="newBgBtn" type="button" title="New background (B)">
+          <span aria-hidden="true">⤭</span> Photo
+        </button>
+        <button class="ghost-btn ghost-quiet" id="shuffleBtn" type="button" title="Reshuffle playlist (R)">
+          <span aria-hidden="true">⇄</span> Reshuffle
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Services tribute ============ -->
+  <section class="services" id="services">
+    <h2 class="sec-title"><span>तीनों सेनाएँ</span> The Three Services</h2>
+    <div class="svc-grid">
+      <article class="svc svc-army">
+        <div class="svc-top">
+          <span class="svc-ico" aria-hidden="true">★</span>
+          <h3>Indian Army</h3>
+        </div>
+        <p class="svc-motto">Service Before Self</p>
+        <p class="svc-copy">
+          From the Siachen Glacier at 20,000 feet to the deserts of Rajasthan — the world's
+          largest volunteer force, quartered in snow, ready when the bugle calls.
+        </p>
+      </article>
+      <article class="svc svc-navy">
+        <div class="svc-top">
+          <span class="svc-ico" aria-hidden="true">⚓</span>
+          <h3>Indian Navy</h3>
+        </div>
+        <p class="svc-motto">Sham No Varunah</p>
+        <p class="svc-copy">
+          Guardians of 7,500 kilometres of coastline and the sea lanes beyond — carrier
+          battle groups, submarines, and the first responders of the Indian Ocean.
+        </p>
+      </article>
+      <article class="svc svc-air">
+        <div class="svc-top">
+          <span class="svc-ico" aria-hidden="true">✈</span>
+          <h3>Indian Air Force</h3>
+        </div>
+        <p class="svc-motto">Nabha Sparsham Deeptam</p>
+        <p class="svc-copy">
+          Touching the sky with glory — Sukhois, Rafales and Tejas on the flight line,
+          and transport fleets that reach the highest airstrips on earth.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ About / FAQ ============ -->
+  <section class="about" id="about">
+    <h2 class="sec-title"><span>इस बारे में</span> About Shaurya</h2>
+    <div class="about-grid">
+      <div class="about-col">
+        <p>
+          <strong>Shaurya</strong> (शौर्य — valour) is a one-page radio for Indian patriotic
+          music. Press play once and it keeps going: the playlist is shuffled fresh on every
+          visit, quotes from our war heroes rotate on their own, and the background moves
+          through a curated wall of Indian Armed Forces photographs.
+        </p>
+        <p>
+          It is built as a tribute — to the Army, the Navy and the Air Force, and to everyone
+          who wore the uniform before us.
+        </p>
+        <h3>Keyboard shortcuts</h3>
+        <ul class="keys">
+          <li><kbd>Space</kbd> play / pause</li>
+          <li><kbd>N</kbd> next track</li>
+          <li><kbd>P</kbd> previous track</li>
+          <li><kbd>Q</kbd> new quote</li>
+          <li><kbd>B</kbd> new background</li>
+          <li><kbd>R</kbd> reshuffle playlist</li>
+          <li><kbd>L</kbd> open playlist</li>
+          <li><kbd>S</kbd> salute</li>
+        </ul>
+      </div>
+      <div class="about-col">
+        <h3>Questions</h3>
+        <details open>
+          <summary>Where does the music come from?</summary>
+          <p>
+            Every track streams from an embedded YouTube player. Shaurya hosts no audio
+            files and offers no downloads. Video is intentionally hidden — this is a
+            music-only experience.
+          </p>
+        </details>
+        <details>
+          <summary>Can I play my own YouTube playlist?</summary>
+          <p>
+            Yes. Add <code>?list=YOUR_PLAYLIST_ID</code> to the URL and Shaurya will shuffle
+            that playlist instead of the built-in one. The playlist must be public or
+            unlisted.
+          </p>
+        </details>
+        <details>
+          <summary>Whose photographs are these?</summary>
+          <p>
+            All background photographs are freely licensed images of the Indian Armed Forces
+            from Wikimedia Commons (public domain, Creative Commons, or the Government Open
+            Data Licence – India). The credit for the photo on screen is shown in the bottom
+            corner.
+          </p>
+        </details>
+        <details>
+          <summary>Is there a login, app, or cost?</summary>
+          <p>No. No account, no ads, no paywall — just a page that plays music.</p>
+        </details>
+      </div>
+    </div>
+    <p class="colophon">
+      Made as a tribute. Music © respective rights holders, streamed via YouTube.
+      Photographs credited on screen. <span class="jh">जय हिन्द 🇮🇳</span>
+    </p>
+  </section>
+</main>
+
+<!-- ============ Photo credit ============ -->
+<div class="photo-credit" id="photoCredit">
+  <span class="pc-label">PHOTO</span>
+  <span class="pc-text" id="photoCreditText"></span>
+  <button class="pc-next" id="photoNext" type="button" aria-label="Next photo" title="Next photo (B)">⤭</button>
+</div>
+
+<!-- ============ Playlist drawer ============ -->
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Playlist">
+  <div class="drawer-head">
+    <h2>
+      <span class="dh-hi">प्लेलिस्ट</span>
+      <span class="dh-en">Playlist <em id="drawerCount"></em></span>
+    </h2>
+    <button class="drawer-close" id="drawerClose" type="button" aria-label="Close playlist">✕</button>
+  </div>
+  <p class="drawer-note" id="drawerNote"></p>
+  <ol class="tracklist" id="tracklist"></ol>
+  <div class="drawer-foot">
+    <button class="ghost-btn" id="drawerShuffle" type="button">⇄ Reshuffle</button>
+    <a class="ghost-btn" id="ytLink" href="#" target="_blank" rel="noopener">Open current on YouTube ↗</a>
+  </div>
+</aside>
+<div class="drawer-scrim" id="drawerScrim"></div>
+
+<!-- ============ Player bar ============ -->
+<div class="player" id="player">
+  <div class="player-progress" id="progressWrap" role="slider" tabindex="0"
+       aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="pp-fill" id="progressFill"></div>
+    <div class="pp-knob" id="progressKnob"></div>
+  </div>
+
+  <div class="player-body">
+    <div class="pl-disc" id="plDisc" aria-hidden="true">
+      <svg viewBox="0 0 100 100" class="chakra-svg"><g id="chakraG3"></g></svg>
+    </div>
+
+    <div class="pl-meta">
+      <div class="pl-now">
+        <span class="pl-eq" id="plEq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="pl-live" id="plState">READY</span>
+      </div>
+      <div class="pl-title" id="plTitle">—</div>
+      <div class="pl-credit" id="plCredit"></div>
+    </div>
+
+    <div class="pl-controls">
+      <button class="pc-btn" id="prevBtn" type="button" aria-label="Previous track" title="Previous (P)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M20 5.5v13L9.5 12z"/></svg>
+      </button>
+      <button class="pc-btn pc-play" id="playBtn" type="button" aria-label="Play" title="Play / pause (Space)">
+        <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15L20 12z"/></svg>
+        <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+      </button>
+      <button class="pc-btn" id="nextBtn" type="button" aria-label="Next track" title="Next (N)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 5v14M4 5.5v13L14.5 12z"/></svg>
+      </button>
+    </div>
+
+    <div class="pl-right">
+      <span class="pl-time"><span id="tCur">0:00</span> / <span id="tDur">0:00</span></span>
+      <div class="pl-vol">
+        <button class="pc-btn pc-small" id="muteBtn" type="button" aria-label="Mute">
+          <svg class="ic-vol" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 8.5a5 5 0 0 1 0 7"/></svg>
+          <svg class="ic-mute" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l5 6M22 9l-5 6"/></svg>
+        </button>
+        <input class="vol-range" id="volRange" type="range" min="0" max="100" value="80" aria-label="Volume" />
+      </div>
+      <button class="pc-btn pc-small" id="listBtn2" type="button" aria-label="Playlist" title="Playlist (L)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden audio source: YouTube iframe, deliberately off-screen (music only) -->
+<div class="yt-hide" aria-hidden="true"><div id="ytFrame"></div></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/data/quotes.js"></script>
+<script src="assets/data/tracks.js"></script>
+<script src="assets/data/backgrounds.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
