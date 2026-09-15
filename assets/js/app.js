@@ -679,7 +679,7 @@
       case "r": reshuffle(); break;
       case "l": toggleDrawer(); break;
       case "s": salute(); break;
-      case "m": salute(); toast(dedication ? dedication.salute : "For MJ 🇮🇳"); break;
+      case "j": salute(); toast(dedication ? dedication.salute : "For MJ 🇮🇳"); break;
       case "escape": closeDrawer(); break;
     }
     if (e.code === "Space") { e.preventDefault(); togglePlay(); }
