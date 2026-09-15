@@ -1,4 +1,6 @@
-data/
+# Leading slash matters: a bare "data/" also matches assets/data/, which would
+# exclude the site's own tracks.js, quotes.js and backgrounds.js.
+/data/
 .DS_Store
 __pycache__/
 *.pyc
