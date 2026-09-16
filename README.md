@@ -95,20 +95,26 @@ The playlist ID is the `list=` value in a YouTube playlist URL. A few notes:
 - In playlist mode, YouTube supplies the track titles and shuffling, so the
   built-in tracklist panel is hidden.
 
-## Background playback (screen off)
+## Mobile playback and the screen lock
 
-A YouTube track cannot play with the screen locked. Phone browsers suspend media
-inside an embedded third-party player, and YouTube reserves background play for
-Premium — no amount of client-side code gets around either. For YouTube tracks
-Shaurya therefore does the next best thing: it holds a screen wake lock while one
-is playing, and resumes the song when you come back to the page.
+Every track streams from YouTube, so playback stops when the phone locks. Phone
+browsers suspend media inside an embedded third-party player, and YouTube
+reserves background play for Premium, so no amount of client-side code gets
+around it. Shaurya does the next best thing: it holds a screen wake lock while a
+track is playing, and resumes the song when you come back to the page.
 
-Tracks served from this site have no such limit. They play through the page's own
-`<audio>` element, which keeps running when the phone is locked or the browser is
-backgrounded, and the Media Session API puts the title, artwork and transport
-controls on the lock screen.
+The only real fix is serving the audio from this site instead, through the page's
+own `<audio>` element — that keeps running with the screen off, and the Media
+Session API puts the title, artwork and transport controls on the lock screen.
+Nothing on this playlist is served that way, and that is deliberate. These are
+modern film recordings owned by labels like T-Series, Zee Music and Sony, and
+none of them are licensed for redistribution. Wikimedia Commons and archive.org
+carry essentially no freely-licensed Indian film music — only military band
+pieces such as the Navy's `Jai Bharati` — so there is nothing legitimate to
+self-host here.
 
-To give a track that treatment, drop an audio file into `assets/audio/` and run:
+The plumbing is still wired up for anyone who does hold distributable files.
+Drop an audio file into `assets/audio/` and run:
 
 ```bash
 python3 tools/sync_audio.py
