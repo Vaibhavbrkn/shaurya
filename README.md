@@ -114,6 +114,24 @@ To give a track that treatment, drop an audio file into `assets/audio/` and run:
 python3 tools/sync_audio.py
 ```
 
+Or let the importer find them for you. It searches `~/Music` and `~/Downloads`
+for files whose names match the playlist, copies the matches in, and regenerates
+the manifest in one go:
+
+```bash
+python3 tools/import_music.py --dry-run   # see what it would take
+python3 tools/import_music.py             # do it
+python3 tools/import_music.py ~/SomeDir   # search elsewhere
+python3 tools/import_music.py --all       # take everything, not just matches
+```
+
+When a library holds several rips of the same song it keeps the largest, skips
+app bundles and caches, and reports any `.m4p` files separately — those are
+Apple Music subscription streams rather than tracks you own, and no browser can
+decode them. On a Mac, buying from the iTunes Store is the way to get a file
+this can actually use; Apple Music, Spotify, JioSaavn and Gaana "downloads" are
+all encrypted.
+
 The script matches files to the playlist by name, so `Teri Mitti.m4a` attaches
 itself to the existing Teri Mitti entry and inherits its credit. Leading track
 numbers and boilerplate like `(Official Video)` are ignored while matching.
