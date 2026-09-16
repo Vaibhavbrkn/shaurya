@@ -24,6 +24,13 @@ python3 -m http.server 8787
 Opening `index.html` directly from the filesystem also mostly works, but a local
 server is recommended because YouTube's embedded player prefers a real origin.
 
+One local-only quirk: Python's `http.server` ignores HTTP `Range` requests, so
+the progress bar cannot seek within a self-hosted audio file — the browser marks
+the media unseekable and snaps back to the start. Playback itself is unaffected,
+and real hosts (GitHub Pages, Netlify, Vercel) all serve ranges properly, so
+seeking works once deployed. To check seeking locally, use a server that
+supports ranges, e.g. `npx serve`.
+
 ## Deploy and share with friends
 
 Pick whichever you find easiest — all three are free and give you a shareable
@@ -88,6 +95,45 @@ The playlist ID is the `list=` value in a YouTube playlist URL. A few notes:
 - In playlist mode, YouTube supplies the track titles and shuffling, so the
   built-in tracklist panel is hidden.
 
+## Background playback (screen off)
+
+A YouTube track cannot play with the screen locked. Phone browsers suspend media
+inside an embedded third-party player, and YouTube reserves background play for
+Premium — no amount of client-side code gets around either. For YouTube tracks
+Shaurya therefore does the next best thing: it holds a screen wake lock while one
+is playing, and resumes the song when you come back to the page.
+
+Tracks served from this site have no such limit. They play through the page's own
+`<audio>` element, which keeps running when the phone is locked or the browser is
+backgrounded, and the Media Session API puts the title, artwork and transport
+controls on the lock screen.
+
+To give a track that treatment, drop an audio file into `assets/audio/` and run:
+
+```bash
+python3 tools/sync_audio.py
+```
+
+The script matches files to the playlist by name, so `Teri Mitti.m4a` attaches
+itself to the existing Teri Mitti entry and inherits its credit. Leading track
+numbers and boilerplate like `(Official Video)` are ignored while matching.
+Anything it cannot place is added as its own track. It writes
+`assets/data/local-audio.js`; commit that along with the audio files, since the
+site serves them from wherever you deploy it.
+
+Those tracks are marked **BG** in the playlist drawer. Everything else keeps
+streaming from YouTube exactly as before — the two backends sit behind the same
+controls, progress bar and keyboard shortcuts.
+
+Supported formats: `.m4a`, `.mp3`, `.aac`, `.ogg`, `.opus`, `.webm`, `.flac`,
+`.wav`. Prefer `.m4a` or `.mp3` for size and universal support.
+
+> **Note on rights.** Anything you put in `assets/audio/` is published by
+> whichever host you deploy to, and a public GitHub repository makes those files
+> public too. Only self-host audio you have the right to distribute — your own
+> recordings, or recordings old enough to be out of copyright. Keep the rest on
+> YouTube, where the rights holders are paid.
+
 ## Editing the content
 
 Everything is plain data, no build step required.
@@ -145,8 +191,10 @@ than hotlinking Wikimedia, and throttles its requests.
 
 ## Credits and licensing
 
-- **Music** — streamed from YouTube. This project hosts no audio files and offers
-  no downloads. All songs remain the property of their respective rights holders.
+- **Music** — streamed from YouTube, and no downloads are offered. The repository
+  ships no audio of its own; `assets/audio/` is empty until you add files, and
+  what you put there is your responsibility. All songs remain the property of
+  their respective rights holders.
 - **Photographs** — freely licensed images of the Indian Armed Forces from
   Wikimedia Commons (public domain, Creative Commons, or the Government Open Data
   Licence – India). Per-photo credit is shown on screen and listed in

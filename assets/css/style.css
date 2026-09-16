@@ -2,6 +2,10 @@
    शौर्य Shaurya — Indian Armed Forces Radio
    ========================================================= */
 
+/* Several components set an explicit display, which would otherwise beat the
+   hidden attribute's default. Keep [hidden] authoritative. */
+[hidden] { display: none !important; }
+
 :root {
   --saffron: #ff9933;
   --saffron-hot: #ffb257;
@@ -549,6 +553,14 @@ details code {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .tl-dur { flex: none; font-family: var(--font-disp); font-size: 15px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+/* Marks a track served from this site, which keeps playing with the screen off */
+.tl-badge {
+  flex: none; padding: 2px 6px; border-radius: 5px;
+  border: 1px solid rgba(19,136,8,0.55); background: rgba(19,136,8,0.16);
+  font-family: var(--font-disp); font-size: 11px; letter-spacing: 0.1em;
+  color: #6fd36a;
+}
 
 .tl-btn.is-current { background: rgba(255,153,51,0.13); border-color: var(--line-hot); color: #fff; }
 .tl-btn.is-current::before { color: var(--saffron); }

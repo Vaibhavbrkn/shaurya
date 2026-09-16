@@ -1,0 +1,11 @@
+Drop audio files here, then run: python3 tools/sync_audio.py
+
+Anything in this folder plays through the page's own <audio> element, which keeps
+running when the phone is locked or the browser is backgrounded. Tracks without a
+file here stream from YouTube instead and stop as soon as the screen goes off.
+
+Name files after the songs in assets/data/tracks.js ("Teri Mitti.m4a") and they
+attach to those entries and inherit their credits. Anything unrecognised is still
+added as its own track.
+
+Formats: .m4a, .mp3, .aac, .ogg, .opus, .webm, .flac, .wav

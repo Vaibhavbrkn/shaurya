@@ -45,6 +45,45 @@
     return m + ":" + (sec < 10 ? "0" : "") + sec;
   }
 
+  function slug(s) {
+    return String(s)
+      .toLowerCase()
+      .replace(/['\u2018\u2019]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  /* Give every track that has a local file in assets/audio/ a .file property.
+     Those play through the <audio> element and survive a screen lock; the rest
+     stay on the YouTube embed, which does not. Returns how many are covered. */
+  function attachLocalAudio() {
+    var man = window.SHAURYA_LOCAL_AUDIO || {};
+    // Accept the generated {byTrack, extra} shape and a plain hand-written map
+    var byTrack = man.byTrack || (man.extra ? {} : man);
+    var extra = man.extra || [];
+    var n = 0;
+
+    TRACKS.forEach(function (t) {
+      var file = byTrack[t.id] || byTrack[slug(t.name)];
+      if (file) { t.file = file; n++; }
+    });
+
+    extra.forEach(function (e) {
+      if (!e || !e.file) return;
+      TRACKS.push({
+        id: e.id || "",
+        name: e.name || e.file.split("/").pop(),
+        credit: e.credit || "From your library",
+        source: e.source || "",
+        duration: e.duration || 0,
+        file: e.file,
+      });
+      n++;
+    });
+
+    return n;
+  }
+
   function toast(msg) {
     var el = $("toast");
     el.textContent = msg;
@@ -229,7 +268,144 @@
       plState = $("plState"), plEq = $("plEq"), plDisc = $("plDisc"),
       fill = $("progressFill"), knob = $("progressKnob"),
       tCur = $("tCur"), tDur = $("tDur"), progressWrap = $("progressWrap"),
-      volRange = $("volRange"), muteBtn = $("muteBtn"), volWrap = muteBtn.parentNode;
+      volRange = $("volRange"), muteBtn = $("muteBtn"), volWrap = muteBtn.parentNode,
+      audioEl = $("audioEl");
+
+  /* =======================================================
+     Playback engines
+
+     Both backends expose the same handful of methods so the controls, progress
+     bar, keyboard shortcuts and playlist never need to know which is playing.
+     `background: true` means the engine keeps going when the phone is locked,
+     which is the whole reason the <audio> path exists.
+     ======================================================= */
+  var localEngine = {
+    name: "local",
+    background: true,
+    load: function (t, autoplay) {
+      audioEl.src = t.file;
+      audioEl.load();
+      if (autoplay) localEngine.play();
+      else plState.textContent = "READY";
+    },
+    play: function () {
+      var p = audioEl.play();
+      // Rejects when there was no user gesture yet, or the file will not
+      // decode. Correct the UI, or the bar keeps claiming ON AIR and the play
+      // button needs pressing twice.
+      if (p && p.catch) p.catch(function () {
+        if (engine === localEngine) setPlayingUI(false);
+      });
+    },
+    pause: function () { audioEl.pause(); },
+    seek: function (s) { try { audioEl.currentTime = s; } catch (e) {} },
+    time: function () { return audioEl.currentTime || 0; },
+    duration: function () {
+      return isFinite(audioEl.duration) ? audioEl.duration : 0;
+    },
+    volume: function (v) {
+      audioEl.volume = Math.max(0, Math.min(1, v / 100));
+      audioEl.muted = v === 0;
+    },
+    stop: function () {
+      audioEl.pause();
+      // Dropping the attribute and reloading releases the stream. Assigning ""
+      // instead would resolve to the page URL and fire a bogus error event.
+      audioEl.removeAttribute("src");
+      audioEl.load();
+    },
+  };
+
+  var ytEngine = {
+    name: "youtube",
+    background: false,
+    load: function (t, autoplay) {
+      // Only ever set the flag, never clear it: cueing a track must not discard
+      // a play the user already asked for while the iframe was still loading.
+      if (!ready) { if (autoplay) wantPlay = true; return; }
+      if (autoplay) yt.loadVideoById(t.id);
+      else yt.cueVideoById(t.id);
+    },
+    play: function () { try { yt.playVideo(); } catch (e) {} },
+    pause: function () { try { yt.pauseVideo(); } catch (e) {} },
+    seek: function (s) { try { yt.seekTo(s, true); } catch (e) {} },
+    time: function () { try { return yt.getCurrentTime() || 0; } catch (e) { return 0; } },
+    duration: function () { try { return yt.getDuration() || 0; } catch (e) { return 0; } },
+    volume: function (v) {
+      try { yt.setVolume(v); if (v === 0) yt.mute(); else yt.unMute(); } catch (e) {}
+    },
+    stop: function () { try { yt.pauseVideo(); } catch (e) {} },
+  };
+
+  var engine = ytEngine;
+  var localCount = 0;
+
+  function engineFor(t) { return t && t.file ? localEngine : ytEngine; }
+
+  /* iOS only lets an <audio> element begin playing from inside a user gesture,
+     and counts the element as unlocked once it has. When the opening track is a
+     YouTube one, the element would still be locked by the time a local track
+     came round mid-session, and that play() would be refused. So spend the
+     opening click on a millisecond of silence to unlock it. */
+  var SILENCE = "data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+" +
+                "AAACABAAZGF0YRAAAAAAAAAAAAAAAAAAAAAAAAAA";
+  var audioPrimed = false;
+
+  function primeAudio() {
+    if (audioPrimed || engine === localEngine) return;
+    audioPrimed = true;
+    try {
+      audioEl.src = SILENCE;
+      var p = audioEl.play();
+      if (p && p.then) p.then(function () {
+        // A real track may have taken the element over by the time this settles
+        if (audioEl.src === SILENCE) audioEl.pause();
+      }, function () {});
+    } catch (e) {}
+  }
+
+  // Local-only tracks have no YouTube id, so fall back to the file path
+  function trackKey(t) { return t ? (t.id || t.file || "") : ""; }
+
+  /* ---------- <audio> events, mirroring the YouTube state handlers ---------- */
+  audioEl.addEventListener("playing", function () {
+    if (engine !== localEngine) return;
+    setPlayingUI(true);
+    renderNowPlaying();
+  });
+  audioEl.addEventListener("pause", function () {
+    if (engine === localEngine) setPlayingUI(false);
+  });
+  audioEl.addEventListener("waiting", function () {
+    if (engine === localEngine) plState.textContent = "LOADING";
+  });
+  audioEl.addEventListener("ended", function () {
+    if (engine === localEngine) next(true);
+  });
+  audioEl.addEventListener("error", function () {
+    var src = audioEl.getAttribute("src");
+    if (engine !== localEngine || !src) return;
+    var t = currentTrack();
+    // The event is queued, so it can arrive after the user has moved on
+    if (!t || src !== t.file) return;
+
+    if (t.id) {
+      // A local file is an upgrade on the YouTube stream, so a broken one
+      // should demote the track rather than remove it from the playlist.
+      delete t.file;
+      if (localCount > 0) localCount--;
+      toast("Local file missing — streaming that one instead");
+      renderTracklist();
+      load(cur, true);
+      return;
+    }
+
+    // Nothing to fall back to: the track exists only as a file
+    deadIds[trackKey(t)] = true;
+    toast("Skipped a missing audio file");
+    renderTracklist();
+    next(true);
+  });
 
   function buildOrder() {
     order = TRACKS.map(function (_, i) { return i; });
@@ -253,21 +429,23 @@
     var t = currentTrack();
     plTitle.textContent = t ? t.name : "—";
     plCredit.textContent = t ? t.credit : "";
+    // Local-only tracks have no video to open
     var link = $("ytLink");
-    if (t) link.href = "https://www.youtube.com/watch?v=" + t.id;
+    link.hidden = !(t && t.id);
+    if (t && t.id) link.href = "https://www.youtube.com/watch?v=" + t.id;
     highlightTrack();
   }
 
-  /* Keeping the music going on a phone.
+  /* A fallback for YouTube tracks only.
 
-     True screen-off playback is not available to us: mobile browsers suspend a
-     cross-origin YouTube embed when the tab is backgrounded or the screen
-     locks, and YouTube itself treats background play as a Premium feature. So
-     the achievable goal is to stop the phone from sleeping on its own while
-     Shaurya is open and playing, which is what kills playback in practice.
+     Those cannot play with the screen off — phone browsers suspend media in a
+     cross-origin iframe and YouTube gates background play behind Premium — so
+     the next best thing is to stop the phone sleeping on its own while one is
+     playing. Local files need none of this and are better off without it: no
+     lock means the screen can go dark while the music keeps going.
 
-     The lock is released on pause, and the browser drops it whenever the page
-     is hidden, so it is re-requested when the page comes back. */
+     The browser drops the lock whenever the page is hidden, so it has to be
+     re-requested when the page comes back. */
   var wakeLock = null;
 
   function releaseWakeLock() {
@@ -286,6 +464,71 @@
     });
   }
 
+  /* =======================================================
+     Media Session — lock-screen title, artwork and controls
+     ======================================================= */
+  var mediaSessionWired = false;
+
+  function wireMediaSession() {
+    if (mediaSessionWired || !("mediaSession" in navigator)) return;
+    mediaSessionWired = true;
+
+    var handlers = {
+      play: function () { engine.play(); },
+      pause: function () { engine.pause(); },
+      stop: function () { engine.pause(); },
+      previoustrack: prev,
+      nexttrack: function () { next(false); },
+      seekbackward: function (d) {
+        engine.seek(Math.max(0, engine.time() - ((d && d.seekOffset) || 10)));
+      },
+      seekforward: function (d) {
+        engine.seek(Math.min(engine.duration(), engine.time() + ((d && d.seekOffset) || 10)));
+      },
+      seekto: function (d) {
+        if (d && d.seekTime != null) engine.seek(d.seekTime);
+      },
+    };
+
+    Object.keys(handlers).forEach(function (action) {
+      // Browsers reject actions they do not implement; skip those quietly
+      try { navigator.mediaSession.setActionHandler(action, handlers[action]); }
+      catch (e) {}
+    });
+  }
+
+  function publishMetadata() {
+    if (!("mediaSession" in navigator) || typeof window.MediaMetadata !== "function") return;
+    var t = currentTrack();
+    if (!t) return;
+    try {
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: t.name,
+        artist: t.credit || "Indian Armed Forces Radio",
+        album: "शौर्य Shaurya",
+        artwork: [{
+          src: new URL("assets/art/cover.jpg", location.href).href,
+          sizes: "512x512",
+          type: "image/jpeg",
+        }],
+      });
+    } catch (e) {}
+  }
+
+  var lastPositionPush = 0;
+
+  function publishPosition(c, d) {
+    if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
+    if (!(d > 0) || !(c >= 0) || c > d) return;
+    // The poll runs four times a second; the lock-screen scrubber needs one
+    var now = Date.now();
+    if (now - lastPositionPush < 1000) return;
+    lastPositionPush = now;
+    try {
+      navigator.mediaSession.setPositionState({ duration: d, position: c, playbackRate: 1 });
+    } catch (e) {}
+  }
+
   function setPlayingUI(on) {
     playing = on;
     playBtn.classList.toggle("is-playing", on);
@@ -293,7 +536,10 @@
     plEq.classList.toggle("is-on", on);
     plDisc.classList.toggle("is-spinning", on);
     plState.textContent = on ? "ON AIR" : "PAUSED";
-    if (on) requestWakeLock(); else releaseWakeLock();
+    if (on && !engine.background) requestWakeLock(); else releaseWakeLock();
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = on ? "playing" : "paused";
+    }
   }
 
   function load(index, autoplay) {
@@ -301,49 +547,65 @@
     cur = (index + order.length) % order.length;
     var t = currentTrack();
     if (!t) return;
+
+    // Silence the outgoing backend before handing over, or both would play.
+    // Switch first: stopping fires events whose handlers check which engine is
+    // current, and they must not mistake the handover for a real pause.
+    var target = engineFor(t);
+    var previous = engine;
+    engine = target;
+    if (previous !== target) previous.stop();
+
     renderNowPlaying();
-    if (!ready) { wantPlay = autoplay; return; }
-    if (autoplay) yt.loadVideoById(t.id);
-    else yt.cueVideoById(t.id);
+    publishMetadata();
+    engine.volume(parseInt(volRange.value, 10));
+    engine.load(t, autoplay);
+  }
+
+  /* Every candidate is marked unplayable. Stop rather than loading one anyway:
+     a missing audio folder fails in milliseconds, so skipping onwards would
+     spin through the playlist in a tight loop. */
+  function stall() {
+    engine.stop();
+    setPlayingUI(false);
+    plState.textContent = "NO SOURCE";
+    toast("Nothing in the playlist can be played right now");
+  }
+
+  // Walk to the next track that is not known to be unplayable
+  function step(dir) {
+    for (var hops = 0; hops < order.length; hops++) {
+      cur = (cur + dir + order.length) % order.length;
+      var t = TRACKS[order[cur]];
+      if (t && !deadIds[trackKey(t)]) return true;
+    }
+    return false;
   }
 
   function next(auto) {
     if (usePlaylist) { try { yt.nextVideo(); } catch (e) {} return; }
-    // Skip tracks known to be unplayable
-    for (var hops = 0; hops < order.length; hops++) {
-      cur = (cur + 1) % order.length;
-      var t = TRACKS[order[cur]];
-      if (t && !deadIds[t.id]) break;
-    }
+    if (!step(1)) { stall(); return; }
     load(cur, true);
     if (!auto) toast("Next: " + (currentTrack() ? currentTrack().name : ""));
   }
 
   function prev() {
     if (usePlaylist) { try { yt.previousVideo(); } catch (e) {} return; }
-    try {
-      if (yt && yt.getCurrentTime && yt.getCurrentTime() > 4) { yt.seekTo(0, true); return; }
-    } catch (e) {}
-    for (var hops = 0; hops < order.length; hops++) {
-      cur = (cur - 1 + order.length) % order.length;
-      var t = TRACKS[order[cur]];
-      if (t && !deadIds[t.id]) break;
-    }
+    if (engine.time() > 4) { engine.seek(0); return; }
+    if (!step(-1)) { stall(); return; }
     load(cur, true);
   }
 
   function togglePlay() {
-    if (!ready) { wantPlay = true; return; }
-    try {
-      if (playing) yt.pauseVideo();
-      else yt.playVideo();
-    } catch (e) {}
+    // Only the iframe has a readiness handshake; <audio> is usable immediately
+    if (engine === ytEngine && !ready) { wantPlay = true; return; }
+    if (playing) engine.pause(); else engine.play();
   }
 
   function poll() {
-    if (!ready || seeking) return;
-    var d = 0, c = 0;
-    try { d = yt.getDuration() || 0; c = yt.getCurrentTime() || 0; } catch (e) { return; }
+    if (seeking) return;
+    if (engine === ytEngine && !ready) return;
+    var d = engine.duration(), c = engine.time();
     if (d > 0) {
       var pct = Math.max(0, Math.min(100, (c / d) * 100));
       fill.style.width = pct + "%";
@@ -352,24 +614,26 @@
     }
     tCur.textContent = fmtTime(c);
     tDur.textContent = fmtTime(d);
+    publishPosition(c, d);
   }
 
   // ---------- Seek ----------
+  function canSeek() { return engine !== ytEngine || ready; }
+
   function seekFromEvent(e) {
     var rect = progressWrap.getBoundingClientRect();
     var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
     var ratio = Math.max(0, Math.min(1, x / rect.width));
-    var d = 0;
-    try { d = yt.getDuration() || 0; } catch (err) {}
+    var d = engine.duration();
     if (d > 0) {
-      try { yt.seekTo(d * ratio, true); } catch (err) {}
+      engine.seek(d * ratio);
       fill.style.width = (ratio * 100) + "%";
       knob.style.left = (ratio * 100) + "%";
     }
   }
 
   progressWrap.addEventListener("pointerdown", function (e) {
-    if (!ready) return;
+    if (!canSeek()) return;
     seeking = true;
     progressWrap.setPointerCapture(e.pointerId);
     seekFromEvent(e);
@@ -380,11 +644,10 @@
   progressWrap.addEventListener("pointerup", function () { seeking = false; });
   progressWrap.addEventListener("pointercancel", function () { seeking = false; });
   progressWrap.addEventListener("keydown", function (e) {
-    if (!ready) return;
-    var d = 0, c = 0;
-    try { d = yt.getDuration() || 0; c = yt.getCurrentTime() || 0; } catch (err) { return; }
-    if (e.key === "ArrowRight") { yt.seekTo(Math.min(d, c + 5), true); e.preventDefault(); }
-    if (e.key === "ArrowLeft") { yt.seekTo(Math.max(0, c - 5), true); e.preventDefault(); }
+    if (!canSeek()) return;
+    var d = engine.duration(), c = engine.time();
+    if (e.key === "ArrowRight") { engine.seek(Math.min(d, c + 5)); e.preventDefault(); }
+    if (e.key === "ArrowLeft") { engine.seek(Math.max(0, c - 5)); e.preventDefault(); }
   });
 
   // ---------- Volume ----------
@@ -393,10 +656,9 @@
   volRange.value = savedVol;
 
   function applyVolume(v, remember) {
-    try {
-      yt.setVolume(v);
-      if (v === 0) yt.mute(); else yt.unMute();
-    } catch (e) {}
+    // Set both backends so a handover never jumps in loudness
+    localEngine.volume(v);
+    ytEngine.volume(v);
     volWrap.classList.toggle("is-muted", v === 0);
     if (remember) store.set("vol", v);
   }
@@ -432,8 +694,11 @@
       tracklist.innerHTML = "";
       return;
     }
-    $("drawerNote").textContent =
-      "Shuffled fresh on every visit. Audio streams from YouTube; nothing is hosted here.";
+    $("drawerNote").textContent = localCount
+      ? localCount + " of " + TRACKS.length + " tracks play from this site and keep " +
+        "going with the screen locked. The rest stream from YouTube, which stops " +
+        "when you leave the page."
+      : "Shuffled fresh on every visit. Audio streams from YouTube; nothing is hosted here.";
     $("drawerCount").textContent = "(" + TRACKS.length + ")";
 
     var frag = document.createDocumentFragment();
@@ -447,11 +712,12 @@
       b.innerHTML =
         '<span class="tl-main"><span class="tl-name"></span>' +
         '<span class="tl-credit"></span></span>' +
+        (t.file ? '<span class="tl-badge" title="Plays with the screen off">BG</span>' : '') +
         '<span class="tl-dur"></span>';
       b.querySelector(".tl-name").textContent = t.name;
       b.querySelector(".tl-credit").textContent = t.credit || "";
       b.querySelector(".tl-dur").textContent = t.duration ? fmtTime(t.duration) : "";
-      if (deadIds[t.id]) b.classList.add("is-dead");
+      if (deadIds[trackKey(t)]) b.classList.add("is-dead");
       b.addEventListener("click", function () {
         load(pos, true);
         closeDrawer();
@@ -521,8 +787,9 @@
       vars.listType = "playlist";
       vars.list = playlistId;
     } else {
+      // Nothing to cue when the opening track is a local file
       var first = currentTrack();
-      opts.videoId = first ? first.id : undefined;
+      if (first && !first.file) opts.videoId = first.id;
     }
 
     yt = new YT.Player("ytFrame", opts);
@@ -534,16 +801,18 @@
     if (usePlaylist) {
       try { yt.setShuffle(true); } catch (e) {}
     }
-    clearInterval(pollTimer);
-    pollTimer = setInterval(poll, 250);
     if (wantPlay) {
       wantPlay = false;
-      try { yt.playVideo(); } catch (e) {}
+      // The iframe can arrive long after the click. If a local track took over
+      // in the meantime, leave it alone instead of restarting it from zero.
+      if (usePlaylist) { try { yt.playVideo(); } catch (e) {} }
+      else if (engine === ytEngine) load(cur, true);
     }
     renderNowPlaying();
   }
 
   function onPlayerState(e) {
+    if (engine !== ytEngine) return;
     var S = window.YT.PlayerState;
     if (e.data === S.PLAYING) {
       setPlayingUI(true);
@@ -561,9 +830,10 @@
 
   // Unplayable video (removed, private, or embedding disabled) → skip on
   function onPlayerError() {
+    if (engine !== ytEngine) return;
     var t = currentTrack();
     if (t) {
-      deadIds[t.id] = true;
+      deadIds[trackKey(t)] = true;
       toast("Skipped an unavailable track");
     }
     if (!usePlaylist) {
@@ -694,10 +964,10 @@
     } else if ($("gate").classList.contains("is-gone")) {
       restartBgTimer();
       restartQuoteTimer();
-      if (playing) {
+      // Only the iframe gets suspended while hidden; a local file never stopped,
+      // so this repair is for YouTube tracks alone.
+      if (playing && engine === ytEngine) {
         requestWakeLock();
-        // A phone browser suspends the embed while hidden. If the player was
-        // left playing, pick the song back up instead of stranding it paused.
         try {
           if (ready && yt.getPlayerState && yt.getPlayerState() === YT.PlayerState.PAUSED) {
             yt.playVideo();
@@ -717,9 +987,15 @@
     document.body.classList.remove("gate-open");
     restartQuoteTimer();
     restartBgTimer();
-    // The click is the user gesture browsers require for audio
-    if (ready) { try { yt.playVideo(); } catch (e) {} }
-    else wantPlay = true;
+    // The click is the user gesture browsers require for audio, and the only
+    // moment iOS will accept registering the lock-screen controls.
+    wireMediaSession();
+    primeAudio();
+    if (usePlaylist) {
+      if (ready) engine.play(); else wantPlay = true;
+    } else {
+      load(cur, true);
+    }
     setTimeout(function () { toast("जय हिन्द — Jai Hind 🇮🇳"); }, 700);
   }
 
@@ -747,6 +1023,10 @@
   function init() {
     document.body.classList.add("gate-open");
 
+    // Playlist mode ignores the curated list, so local files have nothing to
+    // attach to and their extras would be unreachable
+    localCount = usePlaylist ? 0 : attachLocalAudio();
+
     if (!TRACKS.length && !usePlaylist) {
       plTitle.textContent = "No tracks loaded";
       plCredit.textContent = "assets/data/tracks.js is missing or empty";
@@ -766,12 +1046,21 @@
     }
 
     buildOrder();
+    engine = engineFor(currentTrack());
     renderTracklist();
     renderNowPlaying();
     showQuote(true);
     initBackgrounds();
     setPlayingUI(false);
     watchPlayerHeight();
+
+    // Drives the progress bar for whichever engine is playing, so it cannot
+    // depend on the YouTube handshake the way it used to.
+    clearInterval(pollTimer);
+    pollTimer = setInterval(poll, 250);
+
+    applyVolume(parseInt(volRange.value, 10), false);
+    if (!usePlaylist) load(cur, false);
     loadYouTubeAPI();
 
     $("gateBtn").addEventListener("click", startSite);

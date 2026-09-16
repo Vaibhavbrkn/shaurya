@@ -183,9 +183,24 @@
         <details open>
           <summary>Where does the music come from?</summary>
           <p>
-            Every track streams from an embedded YouTube player. Shaurya hosts no audio
-            files and offers no downloads. Video is intentionally hidden — this is a
-            music-only experience.
+            Most tracks stream from an embedded YouTube player, with the video intentionally
+            hidden — this is a music-only experience, and there are no downloads. Tracks
+            marked <strong>BG</strong> in the playlist are served straight from this site
+            instead, which is what lets them play with the screen off.
+          </p>
+        </details>
+        <details>
+          <summary>Does it keep playing when my phone locks?</summary>
+          <p>
+            For tracks marked <strong>BG</strong> in the playlist, yes — those are served
+            from this site and play through the page's own audio element, so they survive a
+            locked screen and appear on your lock screen with proper controls.
+          </p>
+          <p>
+            YouTube tracks cannot do this. Phone browsers suspend media inside an embedded
+            third-party player, and YouTube reserves background play for Premium. For those,
+            Shaurya just keeps your screen from sleeping on its own and picks the song back
+            up when you return to the page.
           </p>
         </details>
         <details>
@@ -295,7 +310,10 @@
   </div>
 </div>
 
-<!-- Hidden audio source: YouTube iframe, deliberately off-screen (music only) -->
+<!-- Two audio sources. Tracks with a local file in assets/audio/ play through the
+     element below, which phones keep running with the screen off; the rest fall
+     back to the YouTube iframe, deliberately off-screen (music only). -->
+<audio id="audioEl" preload="metadata" playsinline></audio>
 <div class="yt-hide" aria-hidden="true"><div id="ytFrame"></div></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -303,6 +321,7 @@
 <script src="assets/data/quotes.js"></script>
 <script src="assets/data/tracks.js"></script>
 <script src="assets/data/backgrounds.js"></script>
+<script src="assets/data/local-audio.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
